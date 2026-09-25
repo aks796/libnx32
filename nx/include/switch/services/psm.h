@@ -43,7 +43,7 @@ typedef struct {
     u8 hi_z_mode;
     bool battery_charging;
     u8 pad[2];
-    PsmVdd50State vdd50_state;
+    u32           vdd50_state; ///< \ref PsmVdd50State (u32: the system's size; AArch32 enums are short)
     u32 temperature_celcius;
     u32 battery_charge_percentage;
     u32 battery_charge_milli_voltage;
@@ -68,7 +68,7 @@ typedef struct {
     u8 hi_z_mode;
     bool battery_charging;
     u8 pad[2];
-    PsmVdd50State vdd50_state;        ///< Power Delivery Controller State
+    u32           vdd50_state;        ///< Power Delivery Controller State (u32: the system\'s size; AArch32 enums are short)
     u32 temperature_celcius;          ///< Battery temperature in milli C
     u32 battery_charge_percentage;    ///< Raw battery charged capacity per cent-mille
     u32 battery_charge_milli_voltage; ///< Voltage average in mV

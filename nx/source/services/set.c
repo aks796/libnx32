@@ -327,7 +327,8 @@ Result setsysSetAccountSettings(SetSysAccountSettings settings) {
 }
 
 Result setsysGetAudioVolume(SetSysAudioDevice device, SetSysAudioVolume *out) {
-    return serviceDispatchInOut(&g_setsysSrv, 19, device, *out);
+    const u32 in = device;
+    return serviceDispatchInOut(&g_setsysSrv, 19, in, *out);
 }
 
 Result setsysSetAudioVolume(SetSysAudioDevice device, const SetSysAudioVolume *volume) {
@@ -477,8 +478,9 @@ Result setsysSetEdid(const SetSysEdid *edid) {
 }
 
 Result setsysGetAudioOutputMode(SetSysAudioOutputModeTarget target, SetSysAudioOutputMode *out) {
+    const u32 in = target;
     u32 tmp=0;
-    Result rc = serviceDispatchInOut(&g_setsysSrv, 43, target, tmp);
+    Result rc = serviceDispatchInOut(&g_setsysSrv, 43, in, tmp);
     if (R_SUCCEEDED(rc) && out) *out = tmp;
     return rc;
 }

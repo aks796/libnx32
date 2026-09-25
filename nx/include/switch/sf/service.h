@@ -480,6 +480,11 @@ NX_INLINE Result serviceDispatchImpl(
 #define serviceMacroDetectIsPointerOrArray(p) (__builtin_classify_type(p) == 5)
 #define serviceMacroDecay(p) (&*__builtin_choose_expr(serviceMacroDetectIsPointerOrArray(p), p, NULL))
 #define serviceMacroDetectIsPointer(p) serviceMacroDetectIsSameType(p, serviceMacroDecay(p))
+/* AArch32 (devkitARM) enums are as small as their values (-fshort-enums, the
+ * ARM EABI default there): an enum passed as the raw request data would send
+ * one or two bytes where the service reads a u32 -- pass a fixed-width integer
+ * (enums with values past 16 bits are u32-sized and pass). */
+#define serviceMacroDetectIsEnum(p) (__builtin_classify_type(__typeof__(p)) == 3 && sizeof(p) < sizeof(u32))
 
 #else
 
@@ -498,6 +503,7 @@ namespace libnx::impl {
 }
 
 #define serviceMacroDetectIsPointer(p) (::libnx::impl::is_pointer<decltype(p)>::value)
+#define serviceMacroDetectIsEnum(p) (__is_enum(decltype(p)) && sizeof(p) < sizeof(u32))
 
 #endif
 
@@ -506,6 +512,7 @@ namespace libnx::impl {
 
 #define serviceDispatchIn(_s,_rid,_in,...) \
     ({ static_assert(!(serviceMacroDetectIsPointer(_in))); \
+    static_assert(!(serviceMacroDetectIsEnum(_in)), "IPC raw data of an enum type (1 byte on AArch32): pass a u32"); \
     serviceDispatchImpl((_s),(_rid),&(_in),sizeof(_in),NULL,0,(SfDispatchParams){ __VA_ARGS__ }); })
 
 #define serviceDispatchOut(_s,_rid,_out,...) \
@@ -514,5 +521,6 @@ namespace libnx::impl {
 
 #define serviceDispatchInOut(_s,_rid,_in,_out,...) \
     ({ static_assert(!(serviceMacroDetectIsPointer(_in))); \
+    static_assert(!(serviceMacroDetectIsEnum(_in)), "IPC raw data of an enum type (1 byte on AArch32): pass a u32"); \
     static_assert(!(serviceMacroDetectIsPointer(_out))); \
     serviceDispatchImpl((_s),(_rid),&(_in),sizeof(_in),&(_out),sizeof(_out),(SfDispatchParams){ __VA_ARGS__ }); })

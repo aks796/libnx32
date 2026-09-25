@@ -493,7 +493,8 @@ Result ncmContentMetaDatabaseListApplication(NcmContentMetaDatabase* db, s32* ou
         s32 out_entries_total;
         s32 out_entries_written;
     } out;
-    Result rc = serviceDispatchInOut(&db->s, 7, meta_type, out,
+    const u32 in = meta_type;
+    Result rc = serviceDispatchInOut(&db->s, 7, in, out,
         .buffer_attrs = { SfBufferAttr_HipcMapAlias | SfBufferAttr_Out },
         .buffers = { { out_keys, count*sizeof(NcmApplicationContentMetaKey) } },
     );

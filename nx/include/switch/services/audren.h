@@ -114,13 +114,13 @@ typedef enum {
 typedef struct {
     const void* address;
     u64 size;
-    AudioRendererMemPoolState state;
+    u32                       state; ///< \ref AudioRendererMemPoolState (u32: the system's size; AArch32 enums are short)
     u32 _padding2[3];
 } AudioRendererMemPoolInfoIn;
 
 typedef struct
 {
-    AudioRendererMemPoolState new_state;
+    u32                       new_state; ///< \ref AudioRendererMemPoolState (u32: the system's size; AArch32 enums are short)
     u32 _padding2[3];
 } AudioRendererMemPoolInfoOut;
 
@@ -243,7 +243,7 @@ typedef struct {
     u32 input_count;
     u32 sample_count;
     u32 last_read_offset;
-    PcmFormat sample_format;
+    u32       sample_format; ///< \ref PcmFormat (u32: the system's size; AArch32 enums are short)
     u8 inputs[6];
     u8 _padding2[6];
 } AudioRendererCircularBufferSinkInfoIn;

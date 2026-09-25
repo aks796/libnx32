@@ -268,8 +268,8 @@ typedef struct {
 
 /// LibraryAppletInfo
 typedef struct {
-    AppletId appletId;                 ///< \ref AppletId
-    LibAppletMode mode;                ///< \ref LibAppletMode
+    u32      appletId;                 ///< \ref AppletId (u32: the system\'s size; AArch32 enums are short)
+    u32           mode;                ///< \ref LibAppletMode (u32: the system\'s size; AArch32 enums are short)
 } LibAppletInfo;
 
 /// AppletProcessLaunchReason, from GetLaunchReason.
@@ -287,7 +287,7 @@ typedef struct {
 
 /// IdentityInfo
 typedef struct {
-    AppletId appletId;                 ///< \ref AppletId
+    u32      appletId;                 ///< \ref AppletId (u32: the system\'s size; AArch32 enums are short)
     u32 pad;                           ///< Padding.
     u64 application_id;                ///< ApplicationId, only set with appletId == ::AppletId_application.
 } AppletIdentityInfo;

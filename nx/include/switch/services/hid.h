@@ -1106,7 +1106,7 @@ typedef struct HidNpadLarkState {
     HidAnalogStickState analog_stick_l;                 ///< This is always zero.
     HidAnalogStickState analog_stick_r;                 ///< This is always zero.
     u32 attributes;                                     ///< Bitfield of \ref HidNpadAttribute.
-    HidNpadLarkType lark_type_l_and_main;               ///< \ref HidNpadLarkType LarkTypeLAndMain
+    u32             lark_type_l_and_main;               ///< \ref HidNpadLarkType LarkTypeLAndMain (u32: the system\'s size; AArch32 enums are short)
 } HidNpadLarkState;
 
 /// State for ::HidNpadStyleTag_NpadHandheldLark. The base state is loaded from the same lifo as \ref HidNpadHandheldState.
@@ -1116,8 +1116,8 @@ typedef struct HidNpadHandheldLarkState {
     HidAnalogStickState analog_stick_l;                 ///< AnalogStickL
     HidAnalogStickState analog_stick_r;                 ///< AnalogStickR
     u32 attributes;                                     ///< Bitfield of \ref HidNpadAttribute.
-    HidNpadLarkType lark_type_l_and_main;               ///< \ref HidNpadLarkType LarkTypeLAndMain
-    HidNpadLarkType lark_type_r;                        ///< \ref HidNpadLarkType LarkTypeR
+    u32             lark_type_l_and_main;               ///< \ref HidNpadLarkType LarkTypeLAndMain (u32: the system\'s size; AArch32 enums are short)
+    u32             lark_type_r;                        ///< \ref HidNpadLarkType LarkTypeR (u32: the system\'s size; AArch32 enums are short)
     u32 pad;
 } HidNpadHandheldLarkState;
 
@@ -1128,7 +1128,7 @@ typedef struct HidNpadLuciaState {
     HidAnalogStickState analog_stick_l;                 ///< This is always zero.
     HidAnalogStickState analog_stick_r;                 ///< This is always zero.
     u32 attributes;                                     ///< Bitfield of \ref HidNpadAttribute.
-    HidNpadLuciaType lucia_type;                        ///< \ref HidNpadLuciaType
+    u32              lucia_type;                        ///< \ref HidNpadLuciaType (u32: the system\'s size; AArch32 enums are short)
 } HidNpadLuciaState;
 
 typedef HidNpadCommonState HidNpadLagerState;           ///< State for ::HidNpadStyleTag_NpadLager. Analog-sticks state are always zero.

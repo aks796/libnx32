@@ -120,7 +120,7 @@ typedef struct {
 
 /// Base swkbd arg struct.
 typedef struct {
-    SwkbdType type;                  ///< See \ref SwkbdType.
+    u32       type;                  ///< See \ref SwkbdType. (u32: the system\'s size; AArch32 enums are short)
     u16 okButtonText[18/2];
     u16 leftButtonText;
     u16 rightButtonText;
@@ -135,7 +135,7 @@ typedef struct {
     u32 stringLenMax;                ///< When non-zero, specifies the max string length. When the input is too long, swkbd will stop accepting more input until text is deleted via the B button (Backspace). See also \ref SwkbdTextDrawType.
     u32 stringLenMin;                ///< When non-zero, specifies the min string length. When the input is too short, swkbd will display an icon and disable the ok-button.
     u32 passwordFlag;                ///< Use password: 0 = disable, 1 = enable.
-    SwkbdTextDrawType textDrawType;  ///< See \ref SwkbdTextDrawType.
+    u32               textDrawType;  ///< See \ref SwkbdTextDrawType. (u32: the system\'s size; AArch32 enums are short)
     u16 returnButtonFlag;            ///< Controls whether the Return button is enabled, for newlines input. 0 = disabled, non-zero = enabled.
     u8  blurBackground;              ///< When enabled with value 1, the background is blurred.
     u8  pad_x3bf;
@@ -203,7 +203,7 @@ typedef struct {
 } SwkbdInitializeArg;
 
 typedef struct {
-    SwkbdType type;                  ///< See \ref SwkbdType.
+    u32       type;                  ///< See \ref SwkbdType. (u32: the system\'s size; AArch32 enums are short)
     u16 okButtonText[9];
     u16 leftButtonText;
     u16 rightButtonText;

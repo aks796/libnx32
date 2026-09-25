@@ -260,10 +260,12 @@ NX_INLINE Result tipcDispatchImpl(
     tipcDispatchImpl((_s),(_rid),NULL,0,NULL,0,(TipcDispatchParams){ __VA_ARGS__ })
 
 #define tipcDispatchIn(_s,_rid,_in,...) \
-    tipcDispatchImpl((_s),(_rid),&(_in),sizeof(_in),NULL,0,(TipcDispatchParams){ __VA_ARGS__ })
+    ({ static_assert(!(serviceMacroDetectIsEnum(_in)), "IPC raw data of an enum type (1 byte on AArch32): pass a u32"); \
+    tipcDispatchImpl((_s),(_rid),&(_in),sizeof(_in),NULL,0,(TipcDispatchParams){ __VA_ARGS__ }); })
 
 #define tipcDispatchOut(_s,_rid,_out,...) \
     tipcDispatchImpl((_s),(_rid),NULL,0,&(_out),sizeof(_out),(TipcDispatchParams){ __VA_ARGS__ })
 
 #define tipcDispatchInOut(_s,_rid,_in,_out,...) \
-    tipcDispatchImpl((_s),(_rid),&(_in),sizeof(_in),&(_out),sizeof(_out),(TipcDispatchParams){ __VA_ARGS__ })
+    ({ static_assert(!(serviceMacroDetectIsEnum(_in)), "IPC raw data of an enum type (1 byte on AArch32): pass a u32"); \
+    tipcDispatchImpl((_s),(_rid),&(_in),sizeof(_in),&(_out),sizeof(_out),(TipcDispatchParams){ __VA_ARGS__ }); })

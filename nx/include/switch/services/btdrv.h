@@ -48,7 +48,7 @@ typedef struct {
         struct {
             union {
                 struct {
-                    BtdrvInquiryStatus status;              ///< \ref BtdrvInquiryStatus
+                    u32                status;              ///< \ref BtdrvInquiryStatus (u32: the system's size; AArch32 enums are short)
                 } v1;                                       ///< [1.0.0-11.0.1]
 
                 struct {
@@ -156,11 +156,11 @@ typedef struct {
                 struct {
                     BtdrvAddress addr;                  ///< Device address.
                     u8 pad[2];                          ///< Padding
-                    BtdrvHidConnectionStatus status;    ///< \ref BtdrvHidConnectionStatus
+                    u32                      status;    ///< \ref BtdrvHidConnectionStatus (u32: the system's size; AArch32 enums are short)
                 } v1;                                   ///< [1.0.0-11.0.1]
 
                 struct {
-                    BtdrvHidConnectionStatus status;    ///< \ref BtdrvHidConnectionStatus
+                    u32                      status;    ///< \ref BtdrvHidConnectionStatus (u32: the system's size; AArch32 enums are short)
                     BtdrvAddress addr;                  ///< Device address.
                 } v12;                                  ///< [12.0.0+]
             };

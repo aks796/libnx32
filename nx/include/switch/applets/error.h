@@ -74,7 +74,7 @@ typedef struct {
 /// Error arg data for EULA.
 typedef struct {
     ErrorCommonHeader hdr;            ///< Common header.
-    SetRegion regionCode;             ///< \ref SetRegion
+    u32       regionCode;             ///< \ref SetRegion (u32: the system\'s size; AArch32 enums are short)
 } ErrorEulaArg;
 
 /// Additional input storage data for \ref errorSystemUpdateEulaShow.

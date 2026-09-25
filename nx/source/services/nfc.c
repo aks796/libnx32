@@ -286,7 +286,7 @@ Result nfcStartDetection(const NfcDeviceHandle *handle, NfcProtocol protocol) {
 
     const struct {
         NfcDeviceHandle handle;
-        NfcProtocol protocol;
+        u32 protocol; // \ref NfcProtocol, as a u32 (a short enum on AArch32)
     } in = { *handle, protocol };
 
     serviceAssumeDomain(&g_nfcInterface);

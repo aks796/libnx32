@@ -100,7 +100,7 @@ Result pcvGetPossibleClockRates(PcvModule module, u32 *rates, s32 max_count, Pcv
         return MAKERESULT(Module_Libnx, LibnxError_IncompatSysVer);
 
     const struct {
-        PcvModule module;
+        u32 module; // \ref PcvModule, as a u32 (a short enum on AArch32)
         s32 max_count;
     } in = { module, max_count };
 

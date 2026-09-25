@@ -91,7 +91,7 @@ typedef struct {
 
 /// Common struct for the applet output storage, for non-TLV-storage.
 typedef struct {
-    WebExitReason exitReason;    ///< ExitReason
+    u32           exitReason;    ///< ExitReason (u32: the system\'s size; AArch32 enums are short)
     u32 pad;                     ///< Padding
     char lastUrl[0x1000];        ///< LastUrl string
     u64 lastUrlSize;             ///< Size of LastUrl, including NUL-terminator.
@@ -101,7 +101,7 @@ typedef struct {
 typedef struct {
     u16 total_entries;     ///< Total \ref WebArgTLV entries following this struct.
     u16 pad;               ///< Padding
-    WebShimKind shimKind;  ///< ShimKind
+    u32         shimKind;  ///< ShimKind (u32: the system\'s size; AArch32 enums are short)
 } NX_PACKED WebArgHeader;
 
 /// Web TLV used in the web Arg storage.
@@ -122,14 +122,14 @@ typedef struct {
 /// Common container struct for applets' reply data, from the output storage.
 typedef struct {
     bool type;                     ///< Type of reply: false = ret, true = storage.
-    WebShimKind shimKind;          ///< ShimKind
+    u32         shimKind;          ///< ShimKind (u32: the system\'s size; AArch32 enums are short)
     WebCommonReturnValue ret;      ///< Reply data for reply=false.
     WebCommonTLVStorage storage;   ///< Reply data for reply=true.
 } WebCommonReply;
 
 /// Entry data for ::WebArgType_BootFooterButton.
 typedef struct {
-    WebFooterButtonId id;
+    u32               id; ///< \ref WebFooterButtonId (u32: the system's size; AArch32 enums are short)
     u8 visible;
     u16 unk_x5;
     u8 unk_x7;

@@ -17,7 +17,7 @@ typedef enum {
 /// Input arg storage for the applet.
 typedef struct {
     u32 unk_x0;         ///< Always set to 0 by the user-process.
-    PctlAuthType type;  ///< \ref PctlAuthType
+    u32          type;  ///< \ref PctlAuthType (u32: the system\'s size; AArch32 enums are short)
     u8 arg0;            ///< Arg0
     u8 arg1;            ///< Arg1
     u8 arg2;            ///< Arg2

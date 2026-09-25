@@ -161,7 +161,7 @@ typedef struct {
 
 /// ShellEventInfo
 typedef struct {
-    NsShellEvent event;            ///< \ref NsShellEvent
+    u32          event;            ///< \ref NsShellEvent (u32: the system\'s size; AArch32 enums are short)
     u64 process_id;                ///< processID.
 } NsShellEventInfo;
 

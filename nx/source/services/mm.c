@@ -39,7 +39,8 @@ Result mmuRequestInitialize(MmuRequest *request, MmuModuleId module, u32 unk, bo
 
 Result mmuRequestFinalize(const MmuRequest *request) {
     bool need_old = hosversionBefore(2,0,0);
-    return serviceDispatchIn(&g_mmuSrv, need_old ? 1 : 5, *(need_old ? &request->module : &request->id));
+    const u32 id = need_old ? (u32)request->module : request->id; // a u32 either way (the module is a short enum on AArch32)
+    return serviceDispatchIn(&g_mmuSrv, need_old ? 1 : 5, id);
 }
 
 Result mmuRequestSetAndWait(const MmuRequest *request, u32 freq_hz, s32 timeout) {
@@ -57,7 +58,8 @@ Result mmuRequestGet(const MmuRequest *request, u32 *out_freq_hz) {
     bool need_old = hosversionBefore(2,0,0);
 
     u32 freq = 0;
-    Result rc = serviceDispatchInOut(&g_mmuSrv, need_old ? 3 : 7, *(need_old ? &request->module : &request->id), freq);
+    const u32 id = need_old ? (u32)request->module : request->id;
+    Result rc = serviceDispatchInOut(&g_mmuSrv, need_old ? 3 : 7, id, freq);
 
     if (R_SUCCEEDED(rc) && out_freq_hz)
         *out_freq_hz = freq;

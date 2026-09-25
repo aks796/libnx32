@@ -954,12 +954,22 @@ Result hidGetSupportedNpadStyleSet(u32 *style_set) {
     return rc;
 }
 
+// hid reads an array of u32 ids; on AArch32 HidNpadIdType is a short enum (1 byte).
+static Result _hidNpadIdsToU32(const HidNpadIdType *ids, size_t count, u32 *out, size_t max) {
+    if (count > max) return MAKERESULT(Module_Libnx, LibnxError_BadInput);
+    for (size_t i=0; i<count; i++) out[i] = ids[i];
+    return 0;
+}
+
 Result hidSetSupportedNpadIdType(const HidNpadIdType *ids, size_t count) {
     u64 AppletResourceUserId = appletGetAppletResourceUserId();
+    u32 tmp_ids[16];
+    Result rc = _hidNpadIdsToU32(ids, count, tmp_ids, 16);
+    if (R_FAILED(rc)) return rc;
 
     return serviceDispatchIn(&g_hidSrv, 102, AppletResourceUserId,
         .buffer_attrs = { SfBufferAttr_HipcPointer | SfBufferAttr_In },
-        .buffers = { { ids, count*sizeof(HidNpadIdType) } },
+        .buffers = { { tmp_ids, count*sizeof(u32) } },
         .in_send_pid = true,
     );
 }
@@ -1603,8 +1613,9 @@ Result hidIsUsbFullKeyControllerConnected(HidNpadIdType id, bool *out) {
     if (hosversionBefore(3,0,0))
         return MAKERESULT(Module_Libnx, LibnxError_IncompatSysVer);
 
+    u32 in = id;
     u8 tmp=0;
-    Result rc = serviceDispatchInOut(&g_hidSrv, 402, id, tmp);
+    Result rc = serviceDispatchInOut(&g_hidSrv, 402, in, tmp);
     if (R_SUCCEEDED(rc) && out) *out = tmp & 1;
     return rc;
 }
@@ -1622,11 +1633,14 @@ Result hidGetNpadOfHighestBatteryLevel(const HidNpadIdType *ids, size_t count, H
         return MAKERESULT(Module_Libnx, LibnxError_IncompatSysVer);
 
     u64 AppletResourceUserId = appletGetAppletResourceUserId();
+    u32 tmp_ids[16];
+    Result rc = _hidNpadIdsToU32(ids, count, tmp_ids, 16);
+    if (R_FAILED(rc)) return rc;
 
     u32 tmp=0;
-    Result rc = serviceDispatchInOut(&g_hidSrv, 407, AppletResourceUserId, tmp,
+    rc = serviceDispatchInOut(&g_hidSrv, 407, AppletResourceUserId, tmp,
         .buffer_attrs = { SfBufferAttr_HipcPointer | SfBufferAttr_In },
-        .buffers = { { ids, count*sizeof(HidNpadIdType) } },
+        .buffers = { { tmp_ids, count*sizeof(u32) } },
         .in_send_pid = true,
     );
     if (R_SUCCEEDED(rc) && out) *out = tmp;
