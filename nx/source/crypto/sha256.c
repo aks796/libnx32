@@ -1,6 +1,8 @@
 #include <string.h>
 #include <stdlib.h>
+#ifdef __aarch64__
 #include <arm_neon.h>
+#endif
 
 #include "crypto/sha256.h"
 
@@ -35,6 +37,8 @@ void sha256ContextCreate(Sha256Context *out) {
     out->num_buffered = 0;
     out->finalized = false;
 }
+
+#ifdef __aarch64__
 
 static void _sha256ProcessBlocks(Sha256Context *ctx, const u8 *src_u8, size_t num_blocks) {
     /* Load previous hash with intermediate state, current hash with zeroes. */
@@ -176,6 +180,42 @@ static void _sha256ProcessBlocks(Sha256Context *ctx, const u8 *src_u8, size_t nu
     vst1q_u32(ctx->intermediate_hash + 0, cur_hash0);
     vst1q_u32(ctx->intermediate_hash + 4, cur_hash1);
 }
+
+#else
+
+/* AArch32 (libnx32): the block function in plain C. The AArch64 one above is
+ * A64 assembly; the hash state is kept the same way (native-endian words). */
+#define SHA256_ROR(x, n) (((x) >> (n)) | ((x) << (32 - (n))))
+
+static void _sha256ProcessBlocks(Sha256Context *ctx, const u8 *src_u8, size_t num_blocks) {
+    u32 *h = ctx->intermediate_hash;
+    while (num_blocks > 0) {
+        u32 w[64];
+        for (int i = 0; i < 16; i++)
+            w[i] = ((u32)src_u8[4 * i] << 24) | ((u32)src_u8[4 * i + 1] << 16) |
+                   ((u32)src_u8[4 * i + 2] << 8) | (u32)src_u8[4 * i + 3];
+        for (int i = 16; i < 64; i++) {
+            const u32 s0 = SHA256_ROR(w[i - 15], 7) ^ SHA256_ROR(w[i - 15], 18) ^ (w[i - 15] >> 3);
+            const u32 s1 = SHA256_ROR(w[i - 2], 17) ^ SHA256_ROR(w[i - 2], 19) ^ (w[i - 2] >> 10);
+            w[i] = w[i - 16] + s0 + w[i - 7] + s1;
+        }
+        u32 a = h[0], b = h[1], c = h[2], d = h[3], e = h[4], f = h[5], g = h[6], hh = h[7];
+        for (int i = 0; i < 64; i++) {
+            const u32 t1 = hh + (SHA256_ROR(e, 6) ^ SHA256_ROR(e, 11) ^ SHA256_ROR(e, 25)) +
+                           ((e & f) ^ (~e & g)) + s_roundConstants[i] + w[i];
+            const u32 t2 = (SHA256_ROR(a, 2) ^ SHA256_ROR(a, 13) ^ SHA256_ROR(a, 22)) +
+                           ((a & b) ^ (a & c) ^ (b & c));
+            hh = g; g = f; f = e; e = d + t1;
+            d = c; c = b; b = a; a = t1 + t2;
+        }
+        h[0] += a; h[1] += b; h[2] += c; h[3] += d;
+        h[4] += e; h[5] += f; h[6] += g; h[7] += hh;
+        src_u8 += SHA256_BLOCK_SIZE;
+        num_blocks--;
+    }
+}
+
+#endif
 
 void sha256ContextUpdate(Sha256Context *ctx, const void *src, size_t size) {
     /* Convert src to u8* for utility. */

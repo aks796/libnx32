@@ -17,6 +17,13 @@ NWindow* nwindowGetDefault(void)
     return &g_defaultWin;
 }
 
+ViDisplay* nwindowGetDefaultDisplay(void)
+{
+    // vi allows one OpenDisplay("Default") per process: this is the handle
+    // that gives the display's vsync event (viGetDisplayVsyncEvent).
+    return g_viDisplay.initialized ? &g_viDisplay : NULL;
+}
+
 void __nx_win_init(void)
 {
     Result rc;

@@ -438,3 +438,17 @@ void newlibSetup(void)
     if (tls_size)
         memcpy(__tls_start, __tdata_lma, tls_size);
 }
+
+#ifndef __ARM_ARCH_ISA_A64
+// C11 timespec_get: devkitARM's newlib declares it but does not implement it
+// (Mesa's c11/threads.h uses it). Weak, so a program's own definition wins.
+#ifndef TIME_UTC
+#define TIME_UTC 1
+#endif
+int __attribute__((weak)) timespec_get(struct timespec *ts, int base)
+{
+    if (base != TIME_UTC || clock_gettime(CLOCK_REALTIME, ts) != 0)
+        return 0;
+    return base;
+}
+#endif

@@ -589,7 +589,7 @@ Result svcGetThreadCoreMask(s32* preferred_core, u64* affinity_mask, Handle hand
  * @return Result code.
  * @note Syscall number 0x0F.
  */
-Result svcSetThreadCoreMask(Handle handle, s32 preferred_core, u32 affinity_mask);
+Result svcSetThreadCoreMask(Handle handle, s32 preferred_core, u64 affinity_mask);
 
 /**
  * @brief Gets the current processor's number.

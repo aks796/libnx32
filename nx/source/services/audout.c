@@ -234,12 +234,31 @@ Result audoutStopAudioOut(void) {
     return _audoutCmdNoIO(&g_audoutIAudioOut, 2);
 }
 
+// The service reads the buffer descriptor in the 64-bit layout from every
+// client, pointers as u64 (0x28 bytes), and names buffers by a u64 tag. On
+// AArch32 the AudioOutBuffer struct has 32-bit pointers, so the descriptor is sent
+// as this copy (the same bytes on AArch64).
+typedef struct {
+    u64 next;
+    u64 buffer;
+    u64 buffer_size;
+    u64 data_size;
+    u64 data_offset;
+} _AudOutBufferWire;
+
 Result audoutAppendAudioOutBuffer(AudioOutBuffer *Buffer) {
     bool new_cmd = hosversionAtLeast(3,0,0);
     u64 tmp = (u64)(uintptr_t)Buffer;
+    _AudOutBufferWire wire = {
+        .next = (u64)(uintptr_t)Buffer->next,
+        .buffer = (u64)(uintptr_t)Buffer->buffer,
+        .buffer_size = Buffer->buffer_size,
+        .data_size = Buffer->data_size,
+        .data_offset = Buffer->data_offset,
+    };
     return serviceDispatchIn(&g_audoutIAudioOut, new_cmd==0 ? 3 : 7, tmp,
         .buffer_attrs = { (new_cmd==0 ? SfBufferAttr_HipcMapAlias : SfBufferAttr_HipcAutoSelect) | SfBufferAttr_In },
-        .buffers = { { Buffer, sizeof(*Buffer) } },
+        .buffers = { { &wire, sizeof(wire) } },
     );
 }
 
@@ -249,10 +268,13 @@ static Result _audoutRegisterBufferEvent(Event *BufferEvent) {
 
 Result audoutGetReleasedAudioOutBuffer(AudioOutBuffer **Buffer, u32 *ReleasedBuffersCount) {
     bool new_cmd = hosversionAtLeast(3,0,0);
-    return serviceDispatchOut(&g_audoutIAudioOut, new_cmd==0 ? 5 : 8, *ReleasedBuffersCount,
+    u64 tag = 0; // the service writes u64 tags (a pointer is 4 bytes on AArch32)
+    Result rc = serviceDispatchOut(&g_audoutIAudioOut, new_cmd==0 ? 5 : 8, *ReleasedBuffersCount,
         .buffer_attrs = { (new_cmd==0 ? SfBufferAttr_HipcMapAlias : SfBufferAttr_HipcAutoSelect) | SfBufferAttr_Out },
-        .buffers = { { Buffer, sizeof(*Buffer) } },
+        .buffers = { { &tag, sizeof(tag) } },
     );
+    if (R_SUCCEEDED(rc) && Buffer) *Buffer = (AudioOutBuffer*)(uintptr_t)tag;
+    return rc;
 }
 
 Result audoutContainsAudioOutBuffer(AudioOutBuffer *Buffer, bool *ContainsBuffer) {

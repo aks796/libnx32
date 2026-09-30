@@ -1,9 +1,12 @@
 #include <string.h>
 #include <stdlib.h>
+#ifdef __aarch64__
 #include <arm_neon.h>
+#endif
 
 #include "crypto/sha1.h"
 
+#ifdef __aarch64__
 /* Define for loading work var from message. */
 #define SHA1_LOAD_W_FROM_MESSAGE(which) \
 w[which] = vreinterpretq_u32_u8(vrev32q_u8(vld1q_u8(src_u8))); \
@@ -23,6 +26,7 @@ do { \
 static const u32 s_roundConstants[4] = {
     0x5a827999, 0x6ed9eba1, 0x8f1bbcdc, 0xca62c1d6
 };
+#endif
 
 void sha1ContextCreate(Sha1Context *out) {
     static const u32 H_0[SHA1_HASH_SIZE / sizeof(u32)] = {
@@ -35,6 +39,8 @@ void sha1ContextCreate(Sha1Context *out) {
     out->num_buffered = 0;
     out->finalized = false;
 }
+
+#ifdef __aarch64__
 
 static void _sha1ProcessBlocks(Sha1Context *ctx, const u8 *src_u8, size_t num_blocks) {
     /* Setup round constants. */
@@ -118,6 +124,38 @@ static void _sha1ProcessBlocks(Sha1Context *ctx, const u8 *src_u8, size_t num_bl
     vst1q_u32(ctx->intermediate_hash, cur_abcd);
     ctx->intermediate_hash[4] = cur_e;
 }
+
+#else
+
+/* AArch32 (libnx32): the block function in plain C (see sha256.c). */
+#define SHA1_ROL(x, n) (((x) << (n)) | ((x) >> (32 - (n))))
+
+static void _sha1ProcessBlocks(Sha1Context *ctx, const u8 *src_u8, size_t num_blocks) {
+    u32 *h = ctx->intermediate_hash;
+    while (num_blocks > 0) {
+        u32 w[80];
+        for (int i = 0; i < 16; i++)
+            w[i] = ((u32)src_u8[4 * i] << 24) | ((u32)src_u8[4 * i + 1] << 16) |
+                   ((u32)src_u8[4 * i + 2] << 8) | (u32)src_u8[4 * i + 3];
+        for (int i = 16; i < 80; i++)
+            w[i] = SHA1_ROL(w[i - 3] ^ w[i - 8] ^ w[i - 14] ^ w[i - 16], 1);
+        u32 a = h[0], b = h[1], c = h[2], d = h[3], e = h[4];
+        for (int i = 0; i < 80; i++) {
+            u32 f, k;
+            if (i < 20)      { f = (b & c) | (~b & d);          k = 0x5a827999; }
+            else if (i < 40) { f = b ^ c ^ d;                   k = 0x6ed9eba1; }
+            else if (i < 60) { f = (b & c) | (b & d) | (c & d); k = 0x8f1bbcdc; }
+            else             { f = b ^ c ^ d;                   k = 0xca62c1d6; }
+            const u32 t = SHA1_ROL(a, 5) + f + e + k + w[i];
+            e = d; d = c; c = SHA1_ROL(b, 30); b = a; a = t;
+        }
+        h[0] += a; h[1] += b; h[2] += c; h[3] += d; h[4] += e;
+        src_u8 += SHA1_BLOCK_SIZE;
+        num_blocks--;
+    }
+}
+
+#endif
 
 void sha1ContextUpdate(Sha1Context *ctx, const void *src, size_t size) {
     /* Convert src to u8* for utility. */

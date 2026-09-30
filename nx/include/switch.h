@@ -18,6 +18,7 @@ extern "C" {
 #include "switch/arm/tls.h"
 #include "switch/arm/cache.h"
 #include "switch/arm/counter.h"
+#include "switch/arm/exception32.h"
 
 #include "switch/kernel/svc.h"
 #include "switch/kernel/wait.h"

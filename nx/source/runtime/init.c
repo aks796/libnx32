@@ -75,8 +75,19 @@ void __attribute__((weak)) __libnx_initheap(void)
         if (__nx_heap_size==0) {
             svcGetInfo(&mem_available, InfoType_TotalMemorySize, CUR_PROCESS_HANDLE, 0);
             svcGetInfo(&mem_used, InfoType_UsedMemorySize, CUR_PROCESS_HANDLE, 0);
+            u64 want = 0;
             if (mem_available > mem_used+0x200000)
-                size = (mem_available - mem_used - 0x200000) & ~0x1FFFFF;
+                want = (mem_available - mem_used - 0x200000) & ~0x1FFFFF;
+#ifndef __ARM_ARCH_ISA_A64
+            // A 32-bit address space's heap region is 1 GiB, less than an
+            // application's memory (about 3 GB on hardware): past the region,
+            // svcSetHeapSize fails. The size is clamped to it.
+            u64 heap_region = 0;
+            if (R_SUCCEEDED(svcGetInfo(&heap_region, InfoType_HeapRegionSize, CUR_PROCESS_HANDLE, 0)) &&
+                heap_region && want > heap_region)
+                want = heap_region & ~0x1FFFFF;
+#endif
+            size = (size_t)want;
             if (size==0)
                 size = 0x2000000*16;
         }
@@ -85,6 +96,14 @@ void __attribute__((weak)) __libnx_initheap(void)
         }
 
         Result rc = svcSetHeapSize(&addr, size);
+#ifndef __ARM_ARCH_ISA_A64
+        // An automatic size can still be more than the kernel will map: retry
+        // smaller, down to 32 MiB, before giving up.
+        while (R_FAILED(rc) && __nx_heap_size==0 && size > 0x2000000) {
+            size = (size / 2) & ~0x1FFFFF;
+            rc = svcSetHeapSize(&addr, size);
+        }
+#endif
 
         if (R_FAILED(rc))
             diagAbortWithResult(MAKERESULT(Module_Libnx, LibnxError_HeapAllocFailed));

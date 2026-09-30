@@ -10,9 +10,11 @@
 #define SEQUENTIAL_GUARD_REGION_SIZE 0x1000
 #define RANDOM_MAX_ATTEMPTS 0x200
 
+// Bounds are u64 on both architectures: a 32-bit process's ASLR region is
+// [0x200000, 0x1_0000_0000), whose end does not fit a 32-bit uintptr_t.
 typedef struct {
-    uintptr_t start;
-    uintptr_t end;
+    u64 start;
+    u64 end;
 } MemRegion;
 
 struct VirtmemReservation {
@@ -54,21 +56,21 @@ static Result _memregionInitWithInfo(MemRegion* r, InfoType id0_addr, InfoType i
 }
 
 #ifdef __ARM_ARCH_ISA_A64
-static void _memregionInitHardcoded(MemRegion* r, uintptr_t start, uintptr_t end) {
+static void _memregionInitHardcoded(MemRegion* r, u64 start, u64 end) {
     r->start = start;
     r->end   = end;
 }
 #endif
 
-NX_INLINE bool _memregionIsInside(MemRegion* r, uintptr_t start, uintptr_t end) {
+NX_INLINE bool _memregionIsInside(MemRegion* r, u64 start, u64 end) {
     return start >= r->start && end <= r->end;
 }
 
-NX_INLINE bool _memregionOverlaps(MemRegion* r, uintptr_t start, uintptr_t end) {
+NX_INLINE bool _memregionOverlaps(MemRegion* r, u64 start, u64 end) {
     return start < r->end && r->start < end;
 }
 
-NX_INLINE bool _memregionIsMapped(uintptr_t start, uintptr_t end, uintptr_t guard, uintptr_t* out_end) {
+NX_INLINE bool _memregionIsMapped(u64 start, u64 end, u64 guard, u64* out_end) {
     // Adjust start/end by the desired guard size.
     start -= guard;
     end += guard;
@@ -81,7 +83,7 @@ NX_INLINE bool _memregionIsMapped(uintptr_t start, uintptr_t end, uintptr_t guar
         diagAbortWithResult(MAKERESULT(Module_Libnx, LibnxError_BadQueryMemory));
 
     // Return true if there's anything mapped.
-    uintptr_t memend = meminfo.addr + meminfo.size;
+    u64 memend = meminfo.addr + meminfo.size;
     if (meminfo.type != MemType_Unmapped || end > memend) {
         if (out_end) *out_end = memend + guard;
         return true;
@@ -90,7 +92,7 @@ NX_INLINE bool _memregionIsMapped(uintptr_t start, uintptr_t end, uintptr_t guar
     return false;
 }
 
-NX_INLINE bool _memregionIsReserved(uintptr_t start, uintptr_t end, uintptr_t guard, uintptr_t* out_end) {
+NX_INLINE bool _memregionIsReserved(u64 start, u64 end, u64 guard, u64* out_end) {
     // Adjust start/end by the desired guard size.
     start -= guard;
     end += guard;
@@ -112,18 +114,18 @@ static void* _memregionFindRandom(MemRegion* r, size_t size, size_t guard_size) 
     guard_size = (guard_size + 0xFFF) &~ 0xFFF;
 
     // Ensure the requested size isn't greater than the memory region itself...
-    uintptr_t region_size = r->end - r->start;
+    u64 region_size = r->end - r->start;
     if (size > region_size)
         return NULL;
 
     // Main allocation loop.
-    uintptr_t aslr_max_page_offset = (region_size - size) >> 12;
+    u64 aslr_max_page_offset = (region_size - size) >> 12;
     for (unsigned i = 0; i < RANDOM_MAX_ATTEMPTS; i ++) {
         // Calculate a random memory range outside reserved areas.
-        uintptr_t cur_addr;
+        u64 cur_addr;
         for (;;) {
-            uintptr_t page_offset = __libnx_virtmem_rng() % (aslr_max_page_offset + 1);
-            cur_addr = (uintptr_t)r->start + (page_offset << 12);
+            u64 page_offset = __libnx_virtmem_rng() % (aslr_max_page_offset + 1);
+            cur_addr = (u64)r->start + (page_offset << 12);
 
             // Avoid mapping within the alias region.
             if (_memregionOverlaps(&g_AliasRegion, cur_addr, cur_addr + size))
@@ -146,7 +148,7 @@ static void* _memregionFindRandom(MemRegion* r, size_t size, size_t guard_size) 
             continue;
 
         // We found a suitable address!
-        return (void*)cur_addr;
+        return (void*)(uintptr_t)cur_addr;
     }
 
     return NULL;
@@ -218,9 +220,25 @@ void virtmemUnlock(void) {
     mutexUnlock(&g_VirtmemMutex);
 }
 
+// Where shared, transfer, code and other non-heap mappings may go. In a 32-bit
+// address space the kernel accepts Shared, Code, AliasCode, SharedCode,
+// GeneratedCode, Transfered and ThreadLocal mappings only inside the code
+// region, [0x200000, 0x40000000) (Mesosphere: the alias-code region is the
+// code region for 32-bit processes); the rest of the ASLR region holds the
+// alias and heap regions. The kernel reports that code region as the stack
+// region, so 32-bit processes search there (elsewhere MapSharedMemory fails
+// with InvalidCurrentMemory, first in hidInitialize).
+static MemRegion* _memregionForMappings(void) {
+#ifdef __ARM_ARCH_ISA_A64
+    return &g_AslrRegion;
+#else
+    return &g_StackRegion;
+#endif
+}
+
 void* virtmemFindAslr(size_t size, size_t guard_size) {
     if (!mutexIsLockedByCurrentThread(&g_VirtmemMutex)) return NULL;
-    return _memregionFindRandom(&g_AslrRegion, size, guard_size);
+    return _memregionFindRandom(_memregionForMappings(), size, guard_size);
 }
 
 void* virtmemFindStack(size_t size, size_t guard_size) {
@@ -231,7 +249,7 @@ void* virtmemFindStack(size_t size, size_t guard_size) {
 void* virtmemFindCodeMemory(size_t size, size_t guard_size) {
     if (!mutexIsLockedByCurrentThread(&g_VirtmemMutex)) return NULL;
     // [1.0.0] requires CodeMemory to be mapped within the stack region.
-    return _memregionFindRandom(g_IsLegacyKernel ? &g_StackRegion : &g_AslrRegion, size, guard_size);
+    return _memregionFindRandom(g_IsLegacyKernel ? &g_StackRegion : _memregionForMappings(), size, guard_size);
 }
 
 VirtmemReservation* virtmemAddReservation(void* mem, size_t size) {

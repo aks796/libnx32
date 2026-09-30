@@ -87,6 +87,15 @@ bool envIsSyscallHinted(unsigned svc);
 /// Returns the handle to the running homebrew process.
 Handle envGetOwnProcessHandle(void);
 
+/**
+ * @brief Returns a real handle to the running process, making one if the loader gave none.
+ * @return The handle, or INVALID_HANDLE if none could be made.
+ * @note svcMapProcessCodeMemory, svcMapProcessMemory and svcUnmapProcessCodeMemory refuse CUR_PROCESS_HANDLE.
+ *       A program started as an NSO or an ExeFS override (every 32-bit program) gets no handle from a loader:
+ *       one is made by sending CUR_PROCESS_HANDLE over a session to itself, as hbloader does. Cached; do not close it.
+ */
+Handle envAcquireOwnProcessHandle(void);
+
 /// Returns the loader's return function, to be called on program exit.
 LoaderReturnFn envGetExitFuncPtr(void);
 

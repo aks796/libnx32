@@ -29,6 +29,7 @@ void armDCacheClean(void* addr, size_t size);
  * @param addr Address of the buffer.
  * @param size Size of the buffer, in bytes.
  * @note The start and end addresses of the buffer are forcibly rounded to cache line boundaries (read from CTR_EL0 system register).
+ * @note AArch32: cleans the range from the data cache, then invalidates the whole instruction cache of every core (see source/arm/cache32.c).
  */
 void armICacheInvalidate(void* addr, size_t size);
 
@@ -53,7 +54,9 @@ void armDCacheZero(void* addr, size_t size);
 #define armDCacheClean(addr, size) \
     svcStoreProcessDataCache(CUR_PROCESS_HANDLE, (uint64_t)(uintptr_t)addr, size)
 
-#define armICacheInvalidate(addr, size) (void)0
+// armICacheInvalidate is a function on AArch32 too (source/arm/cache32.c): it
+// cleans the range from the data cache, then has the kernel invalidate every
+// core's instruction cache by changing a spare code page's permission.
 
 #define armDCacheZero(addr, size) \
     do { \

@@ -88,11 +88,13 @@ SVC_BEGIN svcGetThreadCoreMask
     ldr r4, [sp, #0x4]
     str r2, [r4]
     str r3, [r4, #0x4]
-    add sp, sp, #0x4
+    add sp, sp, #0x8    @ drop the saved r0 and r1 (12 bytes were pushed)
     pop {r4}
     bx lr
 SVC_END
 
+@ The affinity mask is 64-bit: the kernel reads it from r2:r3, which is where
+@ AAPCS passes the u64 argument (svc.h), so the stub needs no shuffling.
 DEFINE_OUT00_SVC      0x0F svcSetThreadCoreMask
 
 DEFINE_OUT00_SVC      0x10 svcGetCurrentProcessorNumber
@@ -201,9 +203,26 @@ SVC_BEGIN svcGetResourceLimitCurrentValue
 SVC_END
 
 DEFINE_OUT00_SVC      0x32 svcSetThreadActivity
-# TODO(Kaenbyō): [1.0.0+] 0x33 - GetThreadContext3
-# [4.0.0+] 0x34 - WaitForAddress
-# [4.0.0+] 0x35 - SignalToAddress
+@ r0 = ThreadContext* (0x320 bytes, the 64-bit layout for every thread; for an
+@ AArch32 thread cpu_gprs[0..14] are r0-r14), r1 = thread handle.
+DEFINE_OUT00_SVC      0x33 svcGetThreadContext3
+
+@ WaitForAddress: the kernel takes r0 = address, r1 = type, r2 = value (32-bit),
+@ r3:r4 = timeout. Measured on hardware (Atmosphère for firmware 21.x) and on
+@ Ryujinx 1.1.1098 by timing a 30 ms wait: the layout with a 64-bit value
+@ (r2:r3, timeout in r4:r5) did not wait correctly. AAPCS brings the s64 value
+@ in r2:r3 (its low word in r2) and the timeout on the stack.
+SVC_BEGIN svcWaitForAddress
+    push {r4}
+    ldr r3, [sp, #0x4]
+    ldr r4, [sp, #0x8]
+    svc 0x34
+    pop {r4}
+    bx lr
+SVC_END
+
+@ r0 = address, r1 = signal type, r2 = value, r3 = count (<= 0: all waiters).
+DEFINE_OUT00_SVC      0x35 svcSignalToAddress
 # [8.0.0+] 0x36 - SynchronizePreemptionState
 # [1.0.0+] 0x3C - DumpInfo (stubbed?)
 # [4.0.0+] 0x3D - DumpInfoNew (subbed?)

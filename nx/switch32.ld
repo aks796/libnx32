@@ -54,6 +54,7 @@ SECTIONS
 	.nx-module-name : { KEEP (*(.nx-module-name)) } :rodata
 
 	.rela.dyn : { *(.rela.*) } :rodata
+	.rel.dyn  : { *(.rel.*) } :rodata   /* ARM (AArch32) relocations are SHT_REL */
 	.relr.dyn : { *(.relr.*) } :rodata
 
 	.hash     : { *(.hash) } :rodata

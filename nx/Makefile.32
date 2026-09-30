@@ -24,7 +24,7 @@ VERSION	:=	$(LIBNX_MAJOR).$(LIBNX_MINOR).$(LIBNX_PATCH)
 #---------------------------------------------------------------------------------
 TARGET		:=	nx
 #BUILD		:=	build
-SOURCES		:=	source/arm source/kernel source/sf source/services source/nvidia source/nvidia/ioctl source/display source/audio source/applets source/runtime source/runtime/devices source/runtime/util source/runtime/util/utf
+SOURCES		:=	source/arm source/kernel source/sf source/services source/nvidia source/nvidia/ioctl source/display source/audio source/applets source/crypto source/runtime source/runtime/devices source/runtime/util source/runtime/util/utf
 DATA		:=	data
 INCLUDES	:=	include external/bsd/include
 
@@ -67,6 +67,9 @@ SFILES		:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.s)))
 BINFILES	:=	$(foreach dir,$(DATA),$(notdir $(wildcard $(dir)/*.*)))
 
 SFILES		:= $(filter-out cache.s svc.s exception.s readtp.s switch_crt0.s, $(SFILES))
+# crypto: SHA-1, SHA-256 and HMAC have C block functions for AArch32; AES and
+# CMAC are A64 assembly only
+CFILES		:= $(filter-out aes.c aes_cbc.c aes_ctr.c aes_xts.c cmac.c, $(CFILES))
 
 #---------------------------------------------------------------------------------
 # use CXX for linking C++ projects, CC for standard C

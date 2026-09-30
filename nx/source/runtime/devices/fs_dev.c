@@ -1734,6 +1734,7 @@ static const error_map_t error_table[] =
   /* keep this list sorted! */
   { 0x202, ENOENT,          },
   { 0x402, EEXIST,          },
+  { 0xE02, EBUSY,           }, /* 2-0007: the file is open for writing through another handle (stat and truncate by name) */
   { 0x2EE202, EINVAL,       },
   { 0x2EE602, ENAMETOOLONG, },
 };

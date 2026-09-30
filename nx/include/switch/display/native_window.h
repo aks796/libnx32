@@ -55,6 +55,9 @@ bool nwindowIsValid(NWindow* nw);
  */
 NWindow* nwindowGetDefault(void);
 
+/// Retrieves the display the default \ref NWindow is on (NULL before it is set up). vi allows one OpenDisplay("Default") per process, so this is the handle to use for viGetDisplayVsyncEvent.
+ViDisplay* nwindowGetDefaultDisplay(void);
+
 /**
  * @brief Creates a \ref NWindow.
  * @param[out] nw Output \ref NWindow structure.

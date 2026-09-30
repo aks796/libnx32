@@ -192,12 +192,31 @@ Result audinStopAudioIn(void) {
     return _audinCmdNoIO(&g_audinIAudioIn, 2);
 }
 
+// The service reads the buffer descriptor in the 64-bit layout from every
+// client, pointers as u64 (0x28 bytes), and names buffers by a u64 tag. On
+// AArch32 the AudioInBuffer struct has 32-bit pointers, so the descriptor is sent
+// as this copy (the same bytes on AArch64).
+typedef struct {
+    u64 next;
+    u64 buffer;
+    u64 buffer_size;
+    u64 data_size;
+    u64 data_offset;
+} _AudInBufferWire;
+
 Result audinAppendAudioInBuffer(AudioInBuffer *Buffer) {
     bool new_cmd = hosversionAtLeast(3,0,0);
     u64 tmp = (u64)(uintptr_t)Buffer;
+    _AudInBufferWire wire = {
+        .next = (u64)(uintptr_t)Buffer->next,
+        .buffer = (u64)(uintptr_t)Buffer->buffer,
+        .buffer_size = Buffer->buffer_size,
+        .data_size = Buffer->data_size,
+        .data_offset = Buffer->data_offset,
+    };
     return serviceDispatchIn(&g_audinIAudioIn, new_cmd==0 ? 3 : 8, tmp,
         .buffer_attrs = { (new_cmd==0 ? SfBufferAttr_HipcMapAlias : SfBufferAttr_HipcAutoSelect) | SfBufferAttr_In },
-        .buffers = { { Buffer, sizeof(*Buffer) } },
+        .buffers = { { &wire, sizeof(wire) } },
     );
 }
 
@@ -207,10 +226,13 @@ static Result _audinRegisterBufferEvent(Event *BufferEvent) {
 
 Result audinGetReleasedAudioInBuffer(AudioInBuffer **Buffer, u32 *ReleasedBuffersCount) {
     bool new_cmd = hosversionAtLeast(3,0,0);
-    return serviceDispatchOut(&g_audinIAudioIn, new_cmd==0 ? 5 : 9, *ReleasedBuffersCount,
+    u64 tag = 0; // the service writes u64 tags (a pointer is 4 bytes on AArch32)
+    Result rc = serviceDispatchOut(&g_audinIAudioIn, new_cmd==0 ? 5 : 9, *ReleasedBuffersCount,
         .buffer_attrs = { (new_cmd==0 ? SfBufferAttr_HipcMapAlias : SfBufferAttr_HipcAutoSelect) | SfBufferAttr_Out },
-        .buffers = { { Buffer, sizeof(*Buffer) } },
+        .buffers = { { &tag, sizeof(tag) } },
     );
+    if (R_SUCCEEDED(rc) && Buffer) *Buffer = (AudioInBuffer*)(uintptr_t)tag;
+    return rc;
 }
 
 Result audinContainsAudioInBuffer(AudioInBuffer *Buffer, bool *ContainsBuffer) {
