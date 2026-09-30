@@ -10,8 +10,6 @@ This is [vita2hos](https://github.com/xerpi/vita2hos)'s AArch32 port of libnx
 of it are the fixes found while running 32-bit Android games on the Switch.
 Each one was tested on hardware in at least one of those ports.
 
-The work is on the `thirtytwo` branch.
-
 ---
 
 ## What you get
