@@ -36,6 +36,19 @@ static void _envSelfReceive(void* arg)
     svcCloseHandle(session);
 }
 
+// An application may hold only one session it created itself (pm sets
+// SessionCountMax to 1 for applications), so a program that spent it on its
+// own handle at startup hands that handle over here (hardware 2026-10-02:
+// after android32's startup relocator, svcCreateSession gave 0x10801).
+void envSetOwnProcessHandle(Handle handle)
+{
+    if (handle == INVALID_HANDLE || handle == 0 || handle == CUR_PROCESS_HANDLE)
+        return;
+    mutexLock(&g_selfLock);
+    g_selfHandle = handle;
+    mutexUnlock(&g_selfLock);
+}
+
 Handle envAcquireOwnProcessHandle(void)
 {
     Handle given = envGetOwnProcessHandle(); // from hbloader, when it started us

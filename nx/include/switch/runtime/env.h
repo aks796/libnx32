@@ -93,8 +93,17 @@ Handle envGetOwnProcessHandle(void);
  * @note svcMapProcessCodeMemory, svcMapProcessMemory and svcUnmapProcessCodeMemory refuse CUR_PROCESS_HANDLE.
  *       A program started as an NSO or an ExeFS override (every 32-bit program) gets no handle from a loader:
  *       one is made by sending CUR_PROCESS_HANDLE over a session to itself, as hbloader does. Cached; do not close it.
+ * @note An application may hold one session it made itself (svcCreateSession; pm's resource limit). A program
+ *       that has used it for its own handle already (a startup relocator, as in android32) passes that handle
+ *       to \ref envSetOwnProcessHandle first: otherwise svcCreateSession fails here (0x10801, limit reached).
  */
 Handle envAcquireOwnProcessHandle(void);
+
+/**
+ * @brief Gives \ref envAcquireOwnProcessHandle a real handle to the running process that the program already has.
+ * @param[in] handle The handle (not CUR_PROCESS_HANDLE). It is kept for the rest of the program; do not close it.
+ */
+void envSetOwnProcessHandle(Handle handle);
 
 /// Returns the loader's return function, to be called on program exit.
 LoaderReturnFn envGetExitFuncPtr(void);
