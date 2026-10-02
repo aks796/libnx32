@@ -42,26 +42,9 @@ void armICacheInvalidate(void* addr, size_t size);
 void armDCacheZero(void* addr, size_t size);
 
 #ifndef __ARM_ARCH_ISA_A64
-
-#include "switch/kernel/svc.h"
-
-/*#define armDCacheFlush(addr, size) \
-    svcFlushDataCache(addr, size)*/
-
-#define armDCacheFlush(addr, size) \
-    svcFlushProcessDataCache(CUR_PROCESS_HANDLE, (uint64_t)(uintptr_t)addr, size)
-
-#define armDCacheClean(addr, size) \
-    svcStoreProcessDataCache(CUR_PROCESS_HANDLE, (uint64_t)(uintptr_t)addr, size)
-
-// armICacheInvalidate is a function on AArch32 too (source/arm/cache32.c): it
-// cleans the range from the data cache, then has the kernel invalidate every
-// core's instruction cache by changing a spare code page's permission.
-
-#define armDCacheZero(addr, size) \
-    do { \
-        memset(addr, 0, size); \
-        armDCacheFlush((uint64_t)(uintptr_t)addr, size); \
-    } while (0)
-
+// AArch32 (libnx32): EL0 has no data cache maintenance instructions, so the
+// data cache functions are the kernel's (svcFlushProcessDataCache and
+// svcStoreProcessDataCache on this process), and armICacheInvalidate has the
+// kernel invalidate every core's instruction cache (source/arm/cache32.c).
+// They are functions, as on AArch64, so they can be declared and called alike.
 #endif

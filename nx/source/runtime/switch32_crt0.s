@@ -48,12 +48,14 @@ _start:
     mov  r2, r7
     bl   __libnx_init
 
-    // Jump to the main function
+    // Jump to the main function: main(__system_argc, __system_argv), returning to exit
     adr  r2, __system_args_addr
-    ldr  r0, [r2, #0] // argc
+    ldr  r0, [r2, #0]
     add  r0, r2
-    ldr  r1, [r2, #4] // argv
+    ldr  r0, [r0]     // argc
+    ldr  r1, [r2, #4]
     add  r1, r2
+    ldr  r1, [r1]     // argv
     ldr  lr, [r2, #8] // exit
     add  lr, r2
     b    main

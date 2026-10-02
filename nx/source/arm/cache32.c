@@ -1,4 +1,5 @@
-// armICacheInvalidate for AArch32 (libnx32).
+// Cache maintenance for AArch32 (libnx32): the data cache functions through
+// the kernel, and armICacheInvalidate.
 //
 // A 32-bit EL0 thread has no cache maintenance instructions (32-bit Linux has
 // the cacheflush syscall for this). But the kernel invalidates every core's
@@ -23,6 +24,22 @@
 #include "runtime/env.h"
 
 #define PAGE 0x1000
+
+void armDCacheFlush(void* addr, size_t size)
+{
+    svcFlushProcessDataCache(CUR_PROCESS_HANDLE, (u64)(uintptr_t)addr, size);
+}
+
+void armDCacheClean(void* addr, size_t size)
+{
+    svcStoreProcessDataCache(CUR_PROCESS_HANDLE, (u64)(uintptr_t)addr, size);
+}
+
+void armDCacheZero(void* addr, size_t size)
+{
+    memset(addr, 0, size);
+    armDCacheFlush(addr, size);
+}
 
 static Mutex g_icLock;
 static uintptr_t g_icPage; // 0: not set up yet, 1: unavailable

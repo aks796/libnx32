@@ -84,7 +84,11 @@ void* envGetArgv(void);
  */
 bool envIsSyscallHinted(unsigned svc);
 
-/// Returns the handle to the running homebrew process.
+/**
+ * @brief Returns the handle to the running homebrew process that its loader passed (hbloader).
+ * @note INVALID_HANDLE when there was none: a program started as an NSO or an ExeFS override (every
+ *       32-bit program) gets none. \ref envAcquireOwnProcessHandle makes one.
+ */
 Handle envGetOwnProcessHandle(void);
 
 /**
